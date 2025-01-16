@@ -1,6 +1,7 @@
 package httpx
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -150,11 +151,14 @@ func doHandleError(w http.ResponseWriter, err error, handler func(error) (int, a
 }
 
 func doWriteJson(w http.ResponseWriter, code int, v any) error {
-	bs, err := json.Marshal(v)
-	if err != nil {
+	buffer := new(bytes.Buffer)
+	encoder := json.NewEncoder(buffer)
+	encoder.SetEscapeHTML(false)
+	if err := encoder.Encode(v); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return fmt.Errorf("marshal json failed, error: %w", err)
+		return fmt.Errorf("encode json failed, error: %w", err)
 	}
+	bs := buffer.Bytes()
 
 	w.Header().Set(ContentType, header.JsonContentType)
 	w.WriteHeader(code)
